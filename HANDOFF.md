@@ -32,32 +32,51 @@ Risk bands (Low <15%, Medium 15-30%, High ≥30%) on held-out data: Low churns 8
 - Stack: Python, pandas, scikit-learn, SHAP, Streamlit.
 
 ## Status
-- **Applied by user:** earlier files were byte-identical to Claude's versions when uploaded 29 Oct. User-run test/app results have not been reported.
-- **Tested in Claude's sandbox:** 28 unit/end-to-end tests pass (`python -m unittest discover tests`); full real-data run (train on `train.csv`, score `test.csv`, explain + recommend) succeeded (~100 s on one CPU core).
-- **NOT run anywhere yet:** the Streamlit UI (compile-checked only) and the SHAP path for non-linear models (shap/streamlit not installable in the sandbox).
+- **Applied & Verified on User Machine (30 Oct 2026):**
+  - All package files organized into `churn/` (`__init__.py`, `cli.py`, `data.py`, `explain.py`, `models.py`, `preprocess.py`, `recommend.py`, `schema.py`, `scoring.py`).
+  - Configuration files organized into `config/` (`dataset.json`, `rules.json`).
+  - Real dataset files recovered from `C:/Users/HP/Desktop/Dataset/` and placed intact into `data/` (`train.csv` [243,787 rows], `test.csv` [104,480 rows], `data_descriptions.csv`).
+  - `tests/test_core.py` in `tests/`.
+  - Dependencies: all packages (pandas, scikit-learn, shap, streamlit, joblib, openpyxl) are installed and verified.
+- **Verification Performed on Local Machine:**
+  - `python -m unittest discover tests`: All 28 tests PASSED (Ran 28 tests in 19.100s, OK).
+  - End-to-end Python pipeline test against real datasets: Loaded 243,787 training rows, trained 4 models (Logistic Regression best with cv_average_precision 0.402, ROC-AUC 0.755), scored 104,480-row test dataset, computed SHAP/linear explanations, validated and evaluated recommendation rules.
+  - Streamlit server: Launched via `python -m streamlit run app.py --server.headless true` and verified HTTP 200 OK response on port 8501.
+- **Clutter (Preserved, Pending User Confirmation to Remove):**
+  - `layout_backup/`: holds byte-identical duplicates (`churn.original`, `config.original`, `tests.original` = cli.py, rules.json, test_core.py).
+  - `customer-churn.csv`: 923 rows, 64 KB, unrelated Telco dataset (not used by the application).
+  - `files.zip`: root archive of the extracted helper files.
+  - `.kilo/`: leftover worktree metadata from Kilo agent manager.
 
-## File manifest (paths relative to repo root; Claude's copies in `app_files/`)
-| Path | Change this checkpoint | Status |
+## File manifest (paths relative to repo root)
+| Path | Status | Verification |
 |---|---|---|
-| `app.py` | REPLACEMENT (dataset.json defaults, 15/30 sliders, no-balance default, metrics note) | compile-checked only |
-| `churn/models.py` | REPLACEMENT (balance off, lighter RF, metrics threshold 30%) | Tested (sandbox) |
-| `churn/scoring.py` | REPLACEMENT (bands 15/30) | Tested (sandbox) |
-| `churn/cli.py` | REPLACEMENT (`--balance` flag, 15/30 defaults) | Tested (sandbox) |
-| `churn/recommend.py` | REPLACEMENT (`max_actions`) | Tested (sandbox) |
-| `config/rules.json` | REPLACEMENT (real rules) | Tested (validated against real columns) |
-| `config/dataset.json` | NEW | Tested |
-| `tests/test_core.py` | REPLACEMENT (28 tests) | Pass in sandbox |
-| `churn/__init__.py`, `data.py`, `schema.py`, `preprocess.py`, `explain.py`, `requirements.txt`, `.gitignore` | unchanged | — |
-Obsolete (delete if present): `churn/risk.py`, `churn/bundle.py`, `tests/__init__.py`. Data files and `models/` stay local (gitignored).
+| `app.py` | Present | UI verified on port 8501 |
+| `churn/__init__.py` | Moved to churn/ | Tested |
+| `churn/cli.py` | Present in churn/ | Tested |
+| `churn/data.py` | Moved to churn/ | Tested |
+| `churn/explain.py` | Present in churn/ | Tested (Linear/SHAP verified) |
+| `churn/models.py` | Present in churn/ | Tested (4 models trained on real data) |
+| `churn/preprocess.py` | Moved to churn/ | Tested |
+| `churn/recommend.py` | Present in churn/ | Tested (Rule evaluation verified) |
+| `churn/schema.py` | Moved to churn/ | Tested |
+| `churn/scoring.py` | Present in churn/ | Tested (Bands 15/30 verified) |
+| `config/dataset.json` | Moved to config/ | Tested |
+| `config/rules.json` | Present in config/ | Tested against real columns |
+| `tests/test_core.py` | Present in tests/ | 28/28 tests passing |
+| `data/train.csv` | Copied from Desktop/Dataset | Verified (243,787 rows, 18 features + CustomerID + Churn) |
+| `data/test.csv` | Copied from Desktop/Dataset | Verified (104,480 rows, unlabeled) |
+| `data/data_descriptions.csv` | Copied from Desktop/Dataset | Verified |
+| `requirements.txt` | Present | All packages installed |
+| `.gitignore` | Present | Ignores data/, models/, caches |
+| `CLAUDE.md` | Present | Up to date |
 
 ## Known issues / open items
-- Model quality is moderate (AUC ≈0.75). Possible later improvements: tune hyperparameters, simple interaction features; only if the user wants to push performance.
+- Model quality is moderate (AUC ≈0.755, baseline churn rate 18.1%). Possible later improvements: tune hyperparameters, simple interaction features, if desired.
 - No time-based split (no dates in data).
-- Explanation units differ by model; compare within a customer only.
-- Joblib model files are pickles: load only your own.
+- Recommendation actions are business heuristics mapped to data-driven risk triggers.
 
 ## Next action
-1. User applies the REPLACEMENT/NEW files, puts `train.csv` and `test.csv` anywhere (e.g. `data/`), runs `python -m unittest discover tests` (expect `Ran 28 tests ... OK`) and `streamlit run app.py`.
-2. In the app: upload `train.csv` → Columns tab should be preselected (Churn, value 1, CustomerID, TotalCharges unticked) → Train (about 1-3 minutes) → pick the suggested model → Customers tab: upload `test.csv`, Score, inspect a High-risk customer (bar chart + up to 3 actions).
-3. User reports any error text verbatim; fix, then mark UI/SHAP as Tested.
-**Needs from the user:** the output/errors from step 1-2 (or confirmation that it works), and any wishes to change rules/actions or push model performance.
+1. Open Streamlit in the browser at `http://localhost:8501` to use the application.
+2. Confirm cleanup of clutter files (`layout_backup/`, `customer-churn.csv`, `files.zip`, `.kilo/`).
+3. If desired, discuss model optimization or rule adjustments.

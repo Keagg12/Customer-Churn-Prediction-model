@@ -1,0 +1,7 @@
+{
+  "target": "Churn",
+  "positive_labels": ["1"],
+  "id_column": "CustomerID",
+  "exclude": ["TotalCharges"],
+  "note": "Preselects the Columns tab for train.csv. TotalCharges is exactly AccountAge x MonthlyCharges (checked on all rows), so it adds nothing and blurs explanations. Edit freely."
+}
