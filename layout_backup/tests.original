@@ -121,6 +121,11 @@ class TrainTests(unittest.TestCase):
         self.assertAlmostEqual(s["churn_rate_train"], s["churn_rate_test"], delta=0.03)
         self.assertIn(self.res.best_name, m.index)
 
+    def test_default_probabilities_are_calibrated(self):
+        # without class balancing, average predicted risk should match the real churn rate
+        p = self.res.test_proba["Logistic Regression"]
+        self.assertAlmostEqual(float(p.mean()), float(self.res.y_test.mean()), delta=0.05)
+
     def test_missing_target_rows_are_dropped(self):
         d = self.df.copy()
         d.loc[:19, "outcome"] = None
@@ -156,7 +161,8 @@ class TrainTests(unittest.TestCase):
 
 class RiskTests(unittest.TestCase):
     def test_bands(self):
-        b = RiskBands()
+        self.assertEqual((RiskBands().low_max, RiskBands().high_min), (0.15, 0.30))
+        b = RiskBands(0.30, 0.70)
         self.assertEqual(list(b.assign([0.0, 0.299, 0.30, 0.699, 0.70, 1.0])),
                          ["Low", "Low", "Medium", "Medium", "High", "High"])
         self.assertEqual(int(band_summary([0.1, 0.5, 0.9, 0.95], b).set_index("risk_level").loc["High", "customers"]), 2)
@@ -211,6 +217,12 @@ class RuleTests(unittest.TestCase):
         self.assertFalse(none["matched"])
         self.assertIn("No configured rule matched", none["summary"])
 
+    def test_max_actions_caps_output(self):
+        rules = parse_rules({"rules": [{"id": f"r{i}", "action": f"A{i}", "priority": i} for i in range(5)]})
+        out = recommend(rules, "High", self.DRV, self.ROW, max_actions=2)
+        self.assertEqual([a["rule_id"] for a in out["actions"]], ["r4", "r3"])
+        self.assertIn("3 more rule(s)", out["summary"])
+
     def test_missing_value_and_level_filtering(self):
         out = recommend(self.rules(), "Medium", self.DRV, pd.Series({"f_a": np.nan, "f_grp": "g3"}))
         self.assertEqual([a["rule_id"] for a in out["actions"]], ["r2"])
@@ -220,6 +232,27 @@ class RuleTests(unittest.TestCase):
                                      "conditions": [{"feature": "zzz", "op": "~", "value": 1}]}]})
         self.assertGreaterEqual(len(validate_rules(bad, ["f_a"])), 5)
         self.assertEqual(validate_rules(self.rules(), ["f_a", "f_grp"]), [])
+
+
+class ProjectConfigTests(unittest.TestCase):
+    """The shipped rules and dataset config must only name real columns (from data_descriptions.csv)."""
+    COLUMNS = ["AccountAge", "MonthlyCharges", "SubscriptionType", "PaymentMethod", "PaperlessBilling",
+               "ContentType", "MultiDeviceAccess", "DeviceRegistered", "ViewingHoursPerWeek",
+               "AverageViewingDuration", "ContentDownloadsPerMonth", "GenrePreference", "UserRating",
+               "SupportTicketsPerMonth", "Gender", "WatchlistSize", "ParentalControl", "SubtitlesEnabled"]
+    CONFIG = Path(__file__).parent.parent / "config"
+
+    def test_shipped_rules_are_valid(self):
+        rules = load_rules(self.CONFIG / "rules.json")
+        self.assertGreater(len(rules), 0)
+        self.assertEqual(validate_rules(rules, self.COLUMNS), [])
+
+    def test_dataset_config_names_real_columns(self):
+        cfg = json.loads((self.CONFIG / "dataset.json").read_text(encoding="utf-8"))
+        allcols = self.COLUMNS + ["TotalCharges", "CustomerID", "Churn"]
+        for key in ("target", "id_column"):
+            self.assertIn(cfg[key], allcols)
+        self.assertTrue(set(cfg["exclude"]) <= set(allcols))
 
 
 class EndToEndTests(unittest.TestCase):

@@ -1,5 +1,6 @@
 """Streamlit app: load data -> map columns -> train -> score -> explain -> recommend.
 Run from the project root:  streamlit run app.py"""
+import json
 from pathlib import Path
 
 import streamlit as st
@@ -13,6 +14,7 @@ from churn.scoring import RiskBands, band_summary, load_bundle, make_bundle, sav
 
 ROOT = Path(__file__).parent
 RULES_PATH = ROOT / "config" / "rules.json"
+DATASET_CFG = ROOT / "config" / "dataset.json"
 MODEL_PATH = ROOT / "models" / "model.joblib"
 
 st.set_page_config(page_title="Churn Prediction, Explanation and Recommendation", layout="wide")
@@ -54,19 +56,27 @@ with tab_setup:
     else:
         df = S.df
         cols = list(df.columns)
-        target = st.selectbox("Which column says whether the customer churned?", cols, index=None,
+        cfg = json.loads(DATASET_CFG.read_text(encoding="utf-8")) if DATASET_CFG.exists() else {}
+        target = st.selectbox("Which column says whether the customer churned?", cols,
+                              index=cols.index(cfg["target"]) if cfg.get("target") in cols else None,
                               placeholder="Choose the churn column")
         if target:
             vc = target_value_counts(df, target)
             st.write("Values found in that column:")
             st.dataframe(vc, hide_index=True)
-            pos = st.multiselect("Which value(s) mean the customer CHURNED?", list(vc["value"]))
-            idc = st.selectbox("Customer ID column (optional)", [None] + [c for c in cols if c != target])
-            default_feats = [c for c in cols if c not in (target, idc)]
+            known = list(vc["value"])
+            pos = st.multiselect("Which value(s) mean the customer CHURNED?", known,
+                                 default=[v for v in cfg.get("positive_labels", []) if v in known]
+                                 if target == cfg.get("target") else [])
+            id_opts = [None] + [c for c in cols if c != target]
+            idc = st.selectbox("Customer ID column (optional)", id_opts,
+                               index=id_opts.index(cfg["id_column"]) if cfg.get("id_column") in id_opts else 0)
+            skip = {target, idc} | set(cfg.get("exclude", []))
             feats = st.multiselect("Columns the model may use as inputs", [c for c in cols if c != target],
-                                   default=default_feats)
+                                   default=[c for c in cols if c not in skip])
             st.caption("Remove any column that is only known AFTER a customer leaves (for example a cancellation "
-                       "date or a leaving reason); it would make results look better than they are.")
+                       "date or a leaving reason); it would make results look better than they are. "
+                       "Columns listed under 'exclude' in config/dataset.json start unticked.")
             S.schema = Schema(target=target, positive_labels=pos, feature_columns=[f for f in feats if f != idc],
                               id_column=idc)
             errs, warns = validate_schema(df, S.schema)
@@ -85,7 +95,7 @@ with tab_train:
     else:
         c1, c2, c3 = st.columns(3)
         test_size = c1.slider("Share held out for testing", 0.1, 0.4, 0.2, 0.05)
-        balance = c2.checkbox("Balance classes (give churners more weight)", value=True)
+        balance = c2.checkbox("Balance classes (not recommended: makes probabilities too high)", value=False)
         seed = int(c3.number_input("Random seed", value=42, step=1))
         if st.button("Train and compare models", type="primary"):
             with st.spinner("Training..."):
@@ -106,13 +116,15 @@ with tab_train:
                 st.info("Columns not used: " + "; ".join(f"{k} ({v})" for k, v in res.spec.excluded.items()))
             st.subheader("Results on the held-out test set")
             st.dataframe(res.metrics.style.format("{:.3f}"), use_container_width=True)
+            st.caption(f"Precision, recall, accuracy and F1 are measured at a {sp['threshold']:.0%} churn probability "
+                       f"(the High-risk cut-off). ROC-AUC and average precision do not depend on a cut-off.")
             st.caption(f"Suggested model (best cross-validated {res.selection_metric} on training data): "
                        f"{res.best_name}. Always compare against the churn rate: a model must beat that baseline.")
             choice = st.selectbox("Model to use", list(res.pipelines), index=list(res.pipelines).index(res.best_name))
             b1, b2 = st.columns(2)
-            low = b1.slider("Low risk below", 0.05, 0.60, 0.30, 0.05)
-            high = b2.slider("High risk from", 0.40, 0.95, 0.70, 0.05)
-            st.caption("These cut-offs are settings you can change to match how many customers your team can contact.")
+            low = b1.slider("Low risk below", 0.05, 0.50, 0.15, 0.05)
+            high = b2.slider("High risk from", 0.10, 0.90, 0.30, 0.05)
+            st.caption("Probabilities are only trustworthy when class balancing is off (see the calibration table). Change the cut-offs to match how many customers your team can contact.")
             st.write("Calibration (do predicted probabilities match what actually happened?)")
             st.dataframe(calibration_table(res.y_test, res.test_proba[choice]).style.format(
                 {"mean_predicted": "{:.3f}", "observed_rate": "{:.3f}"}), use_container_width=True)
@@ -135,7 +147,7 @@ with tab_cust:
         st.info("Train and choose a model (or load a saved one) first.")
     else:
         src = S.df
-        other = st.file_uploader("Score a different file (optional; must contain the same input columns)",
+        other = st.file_uploader("Score a different file, e.g. new customers without a churn column (optional; needs the same input columns)",
                                  type=["csv", "tsv", "txt", "xlsx", "xls"], key="score_file")
         if other is not None:
             try:

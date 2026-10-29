@@ -16,8 +16,8 @@ LEVELS = ("Low", "Medium", "High")
 
 @dataclass
 class RiskBands:
-    low_max: float = 0.30   # below this -> Low
-    high_min: float = 0.70  # at or above this -> High
+    low_max: float = 0.15   # below this -> Low
+    high_min: float = 0.30  # at or above this -> High (defaults chosen from this dataset's calibrated scores)
 
     def __post_init__(self):
         if not (0 < self.low_max < self.high_min < 1):

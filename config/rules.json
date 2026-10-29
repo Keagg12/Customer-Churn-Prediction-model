@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "_help": "Rules turn a customer's risk level and main risk-raising factors into suggested actions. Fields: id (unique), action (text shown), risk_levels (Low/Medium/High), driver (feature that must be among the customer's top risk-raising factors), conditions ([{feature, op, value}]; op is one of < <= > >= == != in), priority (higher first). Feature names must match the data columns. Thresholds below are the 20%/80% cut points of train.csv (churn rises steadily across them). The actions are business judgement, not proven by this data.",
+  "rules": [
+    {"id": "support-outreach", "action": "Proactive customer-support outreach: contact the customer before they raise another ticket.",
+     "risk_levels": ["Medium", "High"], "driver": "SupportTicketsPerMonth",
+     "conditions": [{"feature": "SupportTicketsPerMonth", "op": ">=", "value": 6}], "priority": 3},
+    {"id": "price-offer", "action": "Offer a personalised discount or a better-value plan.",
+     "risk_levels": ["Medium", "High"], "driver": "MonthlyCharges",
+     "conditions": [{"feature": "MonthlyCharges", "op": ">", "value": 14}], "priority": 2},
+    {"id": "new-customer", "action": "Early-tenure retention: onboarding follow-up and a loyalty benefit.",
+     "risk_levels": ["Medium", "High"], "driver": "AccountAge",
+     "conditions": [{"feature": "AccountAge", "op": "<", "value": 24}], "priority": 2},
+    {"id": "low-viewing", "action": "Re-engagement campaign with personalised content recommendations.",
+     "risk_levels": ["Medium", "High"], "driver": "ViewingHoursPerWeek",
+     "conditions": [{"feature": "ViewingHoursPerWeek", "op": "<", "value": 16}], "priority": 1},
+    {"id": "short-sessions", "action": "Suggest longer-form series and curated watch lists to build viewing habit.",
+     "risk_levels": ["Medium", "High"], "driver": "AverageViewingDuration",
+     "conditions": [{"feature": "AverageViewingDuration", "op": "<", "value": 40}], "priority": 1},
+    {"id": "few-downloads", "action": "Promote the offline-download feature.",
+     "risk_levels": ["Medium", "High"], "driver": "ContentDownloadsPerMonth",
+     "conditions": [{"feature": "ContentDownloadsPerMonth", "op": "<", "value": 10}], "priority": 1}
+  ]
+}

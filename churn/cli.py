@@ -37,7 +37,7 @@ def cmd_train(a) -> int:
     schema = Schema(target=a.target, positive_labels=a.positive, id_column=a.id,
                     feature_columns=a.features or [c for c in df.columns if c not in skip])
     try:
-        res = train_and_evaluate(df, schema, test_size=a.test_size, seed=a.seed, balance=not a.no_balance)
+        res = train_and_evaluate(df, schema, test_size=a.test_size, seed=a.seed, balance=a.balance)
     except ValueError as exc:
         print(f"Cannot train: {exc}")
         return 2
@@ -65,8 +65,8 @@ def main(argv=None) -> int:
     s.add_argument("--id"); s.add_argument("--features", nargs="+"); s.add_argument("--exclude", nargs="+")
     s.add_argument("--out", default="models/model.joblib")
     s.add_argument("--test-size", type=float, default=0.2); s.add_argument("--seed", type=int, default=42)
-    s.add_argument("--no-balance", action="store_true")
-    s.add_argument("--low", type=float, default=0.30); s.add_argument("--high", type=float, default=0.70)
+    s.add_argument("--balance", action="store_true", help="weight churners more (distorts probabilities)")
+    s.add_argument("--low", type=float, default=0.15); s.add_argument("--high", type=float, default=0.30)
     s.set_defaults(fn=cmd_train)
     a = p.parse_args(argv)
     return a.fn(a)

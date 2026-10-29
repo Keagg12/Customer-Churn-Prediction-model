@@ -17,13 +17,14 @@ from .preprocess import FeatureSpec, build_preprocessor, infer_feature_spec, pre
 from .schema import Schema, make_target, validate_schema
 
 
-def candidate_models(seed: int = 42, balance: bool = True) -> Dict[str, object]:
+def candidate_models(seed: int = 42, balance: bool = False) -> Dict[str, object]:
     cw = "balanced" if balance else None
     models = {
         "Logistic Regression": LogisticRegression(max_iter=2000, class_weight=cw),
         "Decision Tree": DecisionTreeClassifier(max_depth=5, min_samples_leaf=10, class_weight=cw, random_state=seed),
-        "Random Forest": RandomForestClassifier(n_estimators=300, min_samples_leaf=3, class_weight=cw,
-                                                n_jobs=-1, random_state=seed),
+        # kept light so training stays quick on ~250k rows
+        "Random Forest": RandomForestClassifier(n_estimators=100, max_depth=12, min_samples_leaf=50, max_samples=0.3,
+                                                class_weight=cw, random_state=seed),
         "Gradient Boosting": HistGradientBoostingClassifier(class_weight=cw, random_state=seed),
     }
     return models
@@ -90,7 +91,7 @@ class TrainResult:
 
 
 def train_and_evaluate(df: pd.DataFrame, schema: Schema, test_size: float = 0.2, seed: int = 42,
-                       balance: bool = True, cv_folds: int = 5, max_categories: int = 50,
+                       balance: bool = False, cv_folds: int = 5, max_categories: int = 50, threshold: float = 0.30,
                        selection_metric: str = "average_precision", model_names=None) -> TrainResult:
     errors, warns = validate_schema(df, schema)
     if errors:
@@ -147,7 +148,7 @@ def train_and_evaluate(df: pd.DataFrame, schema: Schema, test_size: float = 0.2,
             warns.append(f"{name} could not be trained: {exc}")
             continue
         pipelines[name], probas[name] = pipe, p
-        rows.append({"model": name, f"cv_{selection_metric}": cv_score, **metrics_at(yte, p)})
+        rows.append({"model": name, f"cv_{selection_metric}": cv_score, **metrics_at(yte, p, threshold)})
     if not rows:
         raise ValueError("No model could be trained. " + " ".join(warns))
     metrics = pd.DataFrame(rows).set_index("model")
@@ -155,7 +156,7 @@ def train_and_evaluate(df: pd.DataFrame, schema: Schema, test_size: float = 0.2,
     split = {"rows_used": int(len(y)), "train": int(len(tr)), "test": int(len(te)),
              "churn_rate_all": float(y.mean()), "churn_rate_train": float(ytr.mean()),
              "churn_rate_test": float(yte.mean()), "cv_folds": folds, "grouped_by_id": groups is not None,
-             "balanced_class_weights": balance, "seed": seed}
+             "balanced_class_weights": balance, "seed": seed, "threshold": threshold}
     background = d.iloc[tr][spec.used].sample(n=min(200, len(tr)), random_state=seed)
     return TrainResult(pipelines, metrics, best, selection_metric, spec, schema, split, warns, leakage,
                        yte, probas, background)
