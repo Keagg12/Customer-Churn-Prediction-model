@@ -1,10 +1,17 @@
-# HANDOFF (checkpoint 31 Oct 2026, after frontend navigation change). Must stand alone.
+# HANDOFF (checkpoint 31 Oct 2026, after React/FastAPI conversion and Vercel fix). Must stand alone.
 
 ## For the next Claude
 Read `CLAUDE.md`, then this file, then `CONTINUATION_PROMPT.md`, then inspect every attached file. Attached code is the truth for what exists. Do not restart or redo finished work. You have no access to earlier chats or the user's machine. Branding stays neutral: no college, team or invented company.
 
 ## Project
 Standalone Explainable AI-Based Customer Churn Prediction and Personalized Marketing Recommendation application (Predict, Explain, Recommend, Retain). Application only; old PPT/synopsis are reference, not deliverables.
+
+## Current Web Application
+- `frontend/` is the new React/Vite SPA with six routes; `backend/` is the FastAPI adapter. Existing `churn/` logic is reused for training, scoring, explanations, metrics, and retention rules.
+- Original `app.py` and `ui/` remain unchanged as a Streamlit fallback; do not remove until the React deployment is verified.
+- Vercel failure was caused by tracked Windows-generated `frontend/node_modules`/`dist` files; Git recorded Vite/esbuild executables as mode `100644`. Those directories are now staged for removal from Git; local copies remain. `.gitignore` only re-enables `frontend/node_modules/` and `frontend/dist/`; other user-commented ignore patterns remain commented.
+- `frontend/package.json` explicitly allows esbuild's install script for npm 11. `npm --prefix frontend ci` and `npm --prefix frontend run build` pass locally after the fix. The Vercel redeploy is not yet verified; commit/push the staged cleanup and redeploy.
+- FastAPI is not hosted on Vercel. Deploy it separately and set Vercel `VITE_API_BASE_URL`; configure backend `CORS_ORIGINS`. The API currently has no authentication and uses in-memory browser sessions, so protect it and provide private/persistent data/model storage before production use.
 
 ## Architecture
 - `churn/` is the backend and contains no Streamlit. `data.py` loads tables. `schema.py` validates the user's column choices. `preprocess.py` builds feature specs and the sklearn preprocessor. `models.py` trains and evaluates four models. `scoring.py` holds risk bands, the model Bundle and scoring. `explain.py` gives per-customer contributions (exact for Logistic Regression, SHAP for others). `recommend.py` evaluates rules. `batch.py` (new) does top factors and rule matching for many customers at once. `workspace.py` (new) holds the dashboard logic: config reading, model package (bundle plus held-out evaluation) train/save/load, input checks, historical patterns, ROC/confusion/band-lift/importance helpers.
@@ -28,6 +35,8 @@ Standalone Explainable AI-Based Customer Churn Prediction and Personalized Marke
 - Backend additions: `churn/batch.py`, `churn/workspace.py`; 14 new tests in `tests/test_workspace.py`.
 - Dashboard with four frontend pages: Overview, Customer Explorer, Customer Intelligence, and Retention Center. Model Insights and Prediction Workspace are no longer routed; their modules remain in the repository.
 - Complete implementation audit and measured results recorded in `TECHNICAL_AUDIT.md`; `README.md` now matches the active page registry; stale dataset status in `CLAUDE.md` updated.
+- React/FastAPI conversion added at `frontend/` and `backend/`; legacy Streamlit files are preserved. Feature mapping and deployment steps are in `README.md`.
+- Vercel Linux executable-mode failure addressed by untracking only generated frontend directories, restoring those two ignore rules, and approving esbuild's npm install script.
 - Removed 23 ignored/generated Python bytecode files from three `__pycache__` directories. Tracked legacy data/archive/backups were retained.
 - Design: Instrument Serif / IBM Plex Sans / IBM Plex Mono, palette #F5F3EE #FFFFFF #20231F #73766F, brick red #B64B36 for primary actions and selected states, semantic green/amber/red for risk only. Asymmetric ledger/column layouts, thin borders, no gradients, shadows, glass, emoji or icon cards.
 
@@ -40,7 +49,7 @@ Standalone Explainable AI-Based Customer Churn Prediction and Personalized Marke
   - stale training file notice, wrong `dataset.json`, invalid `rules.json`.
 - Independent number check: with the saved model, observed churn rate, customer count, High-risk count, average probability and the top-risk customer shown on Overview matched values recomputed straight from the files with the backend. Model Insights used the held-out split labels only. An upload-trained model did not change the saved model file (md5 identical).
 - Generated HTML from every page was checked for balanced tags.
-- Current workspace check (31 Oct 2026): `python -m unittest discover tests` ran 42 tests and all passed. `python -m streamlit run app.py` started Streamlit at `http://localhost:8502`; the bare `streamlit run app.py` command is not on the active PowerShell PATH. The selected interpreter measured both real CSVs and loaded both model artifacts; detailed output is summarized in `TECHNICAL_AUDIT.md`.
+- Current workspace check (31 Oct 2026): `python -m unittest discover tests` ran 46 tests and all passed, including four synthetic FastAPI API tests. `npm --prefix frontend ci` and `npm --prefix frontend run build` passed. Playwright locally checked all six React routes, customer filtering/profile flow, desktop/mobile Overview, and API-backed recommendations. Vercel has not yet been redeployed.
 
 ## Failed commands and blockers
 - `pip install streamlit shap altair` failed in the sandbox (pypi.org refused by the egress proxy, 403). So the real app was never launched there.
@@ -59,7 +68,14 @@ Status words: Generated = written by Claude, not yet applied by the user. Tested
 | `app.py` | Tested | unit suite passed; Streamlit launch unavailable in active environment |
 | `requirements.txt` | REPLACEMENT (Generated): streamlit>=1.35 | none needed |
 | `README.md` | REPLACEMENT (Generated) | none needed |
-| `TECHNICAL_AUDIT.md` | Generated | source and dataset audit; tests and stored model artifact inspected |
+| `TECHNICAL_AUDIT.md` | Tested | source/data audit plus React conversion and local Vercel-fix verification |
+| `backend/` | Tested | FastAPI routes exercised through synthetic TestClient tests; production deployment not done |
+| `backend/requirements.txt` | Generated | pinned runtime dependencies for the tested backend/model artifact |
+| `backend/.env.example` | Generated | private data/config/model paths, auto-train, CORS |
+| `frontend/` | Tested | clean npm install, production build, Playwright local flows |
+| `frontend/.env.example` | Generated | public API base URL template |
+| `frontend/vercel.json` | Generated | React Router history fallback |
+| `tests/test_api.py` | Tested | four synthetic FastAPI contract tests pass |
 | `HANDOFF.md` | REPLACEMENT (this file) | none needed |
 | `CONTINUATION_PROMPT.md` | NEW (Generated) | none needed |
 | `.streamlit/config.toml` | NEW (Generated) | not loaded by a real Streamlit |
@@ -79,7 +95,7 @@ Status words: Generated = written by Claude, not yet applied by the user. Tested
 | `churn/__init__.py`, `cli.py`, `data.py`, `explain.py`, `models.py`, `preprocess.py`, `recommend.py`, `schema.py`, `scoring.py` | UNCHANGED | 28 original tests pass |
 | `config/dataset.json`, `config/rules.json` | UNCHANGED | validated by tests |
 | `tests/test_core.py` | UNCHANGED | passes |
-| `.gitignore` | UNCHANGED (ignores data/, models/, caches) | n/a |
+| `.gitignore` | Updated by user/agent | only `frontend/node_modules/` and `frontend/dist/` are active ignore entries; remaining lines are commented |
 | `CLAUDE.md` | Generated | dataset status and current risk-band defaults |
 | `data/*.csv` | user's local files, never uploaded to Claude | n/a |
 | `layout_backup/`, `customer-churn.csv`, `files.zip`, `.kilo/` | not used by current app runtime; retained as tracked backups/data or tooling config because provenance/ownership is unclear | n/a |
@@ -93,12 +109,13 @@ Status words: Generated = written by Claude, not yet applied by the user. Tested
 - The frontend no longer exposes uploads, manual retraining, or held-out model evaluation; training still occurs automatically if no usable saved model exists.
 - A bundle saved by `python -m churn.cli train` has no evaluation and is not used by the app.
 - Recommendation actions are heuristics; the UI says so on every page that shows them.
+- Vercel build fix awaits commit/push and a remote redeploy confirmation.
+- FastAPI is unauthenticated and keeps upload/session overrides in process memory; use access control and private persistent storage before exposing real customer data.
 
 ## Next action
-1. If desired, open the already running local server at `http://localhost:8502`; for future launches use `python -m streamlit run app.py` in the selected environment.
-2. The user reports browser errors or screenshots of the four active pages. Browser rendering has not been inspected by this audit.
-3. The next Claude fixes only what the real run shows (CSS selectors, table selection, chart rendering, speed), updates this file, and re-delivers complete replacement files.
-4. Optional later: remove clutter after the user confirms; tune hyperparameters; update the stale text in `CLAUDE.md`.
+1. Commit and push the staged removal of tracked `frontend/node_modules/` and `frontend/dist/`, plus the package allowlist and minimal ignore rules; trigger a Vercel redeploy and report the result.
+2. Deploy `backend/` separately, configure private data/model paths, `CORS_ORIGINS`, and Vercel `VITE_API_BASE_URL`; do not expose real customer data until API access control is added.
+3. Keep the Streamlit fallback until the production React/API deployment and data persistence have been confirmed.
 
 ## Manual steps for the user
 The 42-test suite has passed. Launch with `python -m streamlit run app.py`; confirm data files stay local/private and keep `data/` and `models/` out of version control.

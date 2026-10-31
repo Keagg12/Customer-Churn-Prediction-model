@@ -65,6 +65,8 @@ Only labeled held-out training rows are used for reported model metrics. `data/t
 
 Deploy the static React frontend to Vercel and the Python API separately to a Python web-service host such as Render. Vercel project settings: set **Root Directory** to `frontend`, build command to `npm run build`, output directory to `dist`, and configure `VITE_API_BASE_URL` to the public API origin. `frontend/vercel.json` provides history fallback for React Router.
 
+Do not commit `frontend/node_modules/` or `frontend/dist/`. Vercel must install dependencies on its Linux build image from `frontend/package-lock.json`; committing Windows `node_modules` can preserve non-executable file modes and cause `vite: Permission denied`. The package manifest explicitly allows esbuild's required install script under npm 11.
+
 For Render, use the repository root as the service root, build command `pip install -r backend/requirements.txt`, and start command `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`. Set `CORS_ORIGINS` to the exact Vercel origin(s), comma-separated. Configure `CHURN_DATA_DIR`, `CHURN_CONFIG_DIR`, and `CHURN_MODEL_PATH` for private mounted storage. A local `models/` file is not deployed because it is Git-ignored; without persisted model storage, redeploys may retrain. `CHURN_AUTO_TRAIN=true` trains during backend startup if no valid model is found, which can make cold starts slow.
 
 Do not commit real customer CSVs, model artifacts, credentials, or `.env` files. The API currently has no user authentication or authorization; do not expose it publicly with sensitive data until protected by an authentication/access-control layer. Browser environment variables prefixed `VITE_` are public and must contain no secrets.

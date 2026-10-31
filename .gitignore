@@ -1,14 +1,16 @@
-__pycache__/
-*.pyc
-.venv/
-backend/.venv/
+# __pycache__/
+# *.pyc
+# .venv/
+# backend/.venv/
+# frontend/node_modules/
+# frontend/dist/
+# .vercel/
+# .env
+# backend/.env
+# frontend/.env
+# *.log
+# data/
+# models/
+# *.joblib
 frontend/node_modules/
 frontend/dist/
-.vercel/
-.env
-backend/.env
-frontend/.env
-*.log
-data/
-models/
-*.joblib

@@ -2,12 +2,13 @@
 
 CONTINUE FROM HANDOFF
 
-Current audit: frontend navigation contains Overview, Customer Explorer, Customer Intelligence, and Retention Center; Model Insights and Prediction Workspace modules remain but are not routed. The real local CSVs and model artifacts were inspected, and the 42-test suite passed. `python -m streamlit run app.py` started at `http://localhost:8502`; the bare `streamlit` command is not on PATH. Read `TECHNICAL_AUDIT.md` for measured data/model results, architecture, and file classifications. Historical statements later in this prompt describe an earlier checkpoint and are superseded by this current audit and `HANDOFF.md`.
+Current state (31 Oct 2026): the original Streamlit app is retained as a fallback; the primary converted web app is React/Vite in `frontend/` with FastAPI in `backend/`, reusing the existing `churn/` business logic. All six React routes were checked locally with real data. `python -m unittest discover tests` passes 46 tests; `npm --prefix frontend ci` and `npm --prefix frontend run build` pass. Vercel's `vite: Permission denied` was traced to committed Windows `node_modules`/`dist` files with non-executable Git modes. Those generated directories are staged for untracking, only their ignore rules were restored, and npm's esbuild install script is explicitly approved. The remote Vercel redeploy is NOT yet verified; commit/push the staged cleanup and redeploy. See `TECHNICAL_AUDIT.md` and `README.md` for details. Historical Streamlit-only notes below describe the earlier baseline and are superseded by this current state and `HANDOFF.md`.
 
 This is an existing project. Do not restart it and do not regenerate finished files. It is the Churn Intelligence application (Predict, Explain, Recommend, Retain): Python, pandas, scikit-learn, SHAP, Streamlit.
 
 I am attaching these files. Read them in this order: `CLAUDE.md`, `HANDOFF.md` (authoritative), then this prompt, then the code.
 - `TECHNICAL_AUDIT.md` (current source-grounded audit)
+- `frontend/` and `backend/` (React/FastAPI conversion)
 - `CLAUDE.md`, `HANDOFF.md`, `CONTINUATION_PROMPT.md`, `README.md`, `requirements.txt`, `.gitignore`, `app.py`
 - `.streamlit/config.toml`
 - everything in `ui/` (theme, state, common, six page modules, `__init__.py`)
@@ -25,6 +26,6 @@ Rules that still apply: labeled `train.csv` trains and evaluates; unlabeled `tes
 
 Precise next action: reconcile the attached code with `HANDOFF.md`, then work through the problems in my pasted output or screenshots, one at a time, in the order they appear. Deliver complete replacement files (exact path, REPLACEMENT or NEW), update `HANDOFF.md` and this prompt after each meaningful fix, and say plainly what you ran and what you could not run. If I report no problems, ask me for screenshots of each page and the output of `python -m unittest discover tests` before changing anything.
 
-Remaining checks: inspect actual browser rendering at `http://localhost:8502`; verify non-linear SHAP explanations and deployment-specific data/model persistence. On a fresh environment, install `requirements.txt` and launch with `python -m streamlit run app.py`.
+Remaining checks: verify the Vercel redeploy from a commit that removes tracked generated assets; deploy and secure FastAPI separately; configure private persistent data/model storage and CORS; add API authentication before exposing real customer data. Browser checks were performed locally, not against production. The non-linear SHAP path also remains unverified.
 
 Checkpoint commands: `CHECKPOINT AND HANDOFF` means finish the smallest safe operation, then give me the latest complete `HANDOFF.md` and `CONTINUATION_PROMPT.md`, the list of files to carry over, and a short summary.
