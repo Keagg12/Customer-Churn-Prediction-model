@@ -12,6 +12,8 @@ Standalone Explainable AI-Based Customer Churn Prediction and Personalized Marke
 - Vercel failure was caused by tracked Windows-generated `frontend/node_modules`/`dist` files; Git recorded Vite/esbuild executables as mode `100644`. Those directories are now staged for removal from Git; local copies remain. `.gitignore` only re-enables `frontend/node_modules/` and `frontend/dist/`; other user-commented ignore patterns remain commented.
 - `frontend/package.json` explicitly allows esbuild's install script for npm 11. `npm --prefix frontend ci` and `npm --prefix frontend run build` pass locally after the fix. The Vercel redeploy is not yet verified; commit/push the staged cleanup and redeploy.
 - FastAPI is not hosted on Vercel. Deploy it separately and set Vercel `VITE_API_BASE_URL`; configure backend `CORS_ORIGINS`. The API currently has no authentication and uses in-memory browser sessions, so protect it and provide private/persistent data/model storage before production use.
+- `render.yaml` defines a free Render web service from the repository root, pinned Python requirements, `/api/health`, repository-relative CSV/config/model paths, and an unsynced `CORS_ORIGINS` value. Render is at its sign-in page in the shared browser; no Render service has been created.
+- Pushed `main` is `54bf44d`. `data/*.csv` and `models/*.joblib` are tracked in that commit, so Render can read them; their visibility depends on GitHub repository visibility. Do not remove or re-ignore them without user approval; use private storage if sensitive.
 
 ## Architecture
 - `churn/` is the backend and contains no Streamlit. `data.py` loads tables. `schema.py` validates the user's column choices. `preprocess.py` builds feature specs and the sklearn preprocessor. `models.py` trains and evaluates four models. `scoring.py` holds risk bands, the model Bundle and scoring. `explain.py` gives per-customer contributions (exact for Logistic Regression, SHAP for others). `recommend.py` evaluates rules. `batch.py` (new) does top factors and rule matching for many customers at once. `workspace.py` (new) holds the dashboard logic: config reading, model package (bundle plus held-out evaluation) train/save/load, input checks, historical patterns, ROC/confusion/band-lift/importance helpers.
@@ -72,6 +74,7 @@ Status words: Generated = written by Claude, not yet applied by the user. Tested
 | `backend/` | Tested | FastAPI routes exercised through synthetic TestClient tests; production deployment not done |
 | `backend/requirements.txt` | Generated | pinned runtime dependencies for the tested backend/model artifact |
 | `backend/.env.example` | Generated | private data/config/model paths, auto-train, CORS |
+| `render.yaml` | Generated | free Render Blueprint; `CORS_ORIGINS` requires Vercel origin input |
 | `frontend/` | Tested | clean npm install, production build, Playwright local flows |
 | `frontend/.env.example` | Generated | public API base URL template |
 | `frontend/vercel.json` | Generated | React Router history fallback |
@@ -97,7 +100,7 @@ Status words: Generated = written by Claude, not yet applied by the user. Tested
 | `tests/test_core.py` | UNCHANGED | passes |
 | `.gitignore` | Updated by user/agent | only `frontend/node_modules/` and `frontend/dist/` are active ignore entries; remaining lines are commented |
 | `CLAUDE.md` | Generated | dataset status and current risk-band defaults |
-| `data/*.csv` | user's local files, never uploaded to Claude | n/a |
+| `data/*.csv`, `models/*.joblib` | tracked in current `main` commit `54bf44d`; available in repository checkout | measured in technical audit; commit visibility depends on GitHub repository settings |
 | `layout_backup/`, `customer-churn.csv`, `files.zip`, `.kilo/` | not used by current app runtime; retained as tracked backups/data or tooling config because provenance/ownership is unclear | n/a |
 
 ## Module dependencies
@@ -109,13 +112,14 @@ Status words: Generated = written by Claude, not yet applied by the user. Tested
 - The frontend no longer exposes uploads, manual retraining, or held-out model evaluation; training still occurs automatically if no usable saved model exists.
 - A bundle saved by `python -m churn.cli train` has no evaluation and is not used by the app.
 - Recommendation actions are heuristics; the UI says so on every page that shows them.
-- Vercel build fix awaits commit/push and a remote redeploy confirmation.
+- Vercel build fix is in pushed commit `54bf44d`; failure logs supplied so far target older commit `fceeda8`, so confirm deployments use the new SHA.
 - FastAPI is unauthenticated and keeps upload/session overrides in process memory; use access control and private persistent storage before exposing real customer data.
+- Render service is not created yet; Render dashboard is at sign-in. `render.yaml` is ready to apply as a Blueprint, with `CORS_ORIGINS` to be set to the Vercel site origin.
 
 ## Next action
-1. Commit and push the staged removal of tracked `frontend/node_modules/` and `frontend/dist/`, plus the package allowlist and minimal ignore rules; trigger a Vercel redeploy and report the result.
-2. Deploy `backend/` separately, configure private data/model paths, `CORS_ORIGINS`, and Vercel `VITE_API_BASE_URL`; do not expose real customer data until API access control is added.
-3. Keep the Streamlit fallback until the production React/API deployment and data persistence have been confirmed.
+1. Sign in to Render, select **New -> Blueprint**, connect `Keagg12/Customer-Churn-Prediction-model` branch `main`, review `render.yaml`, enter `CORS_ORIGINS=https://<your-vercel-site>.vercel.app`, apply, and wait for `/api/health` to pass.
+2. Set Vercel `VITE_API_BASE_URL` to the Render service origin, then redeploy Vercel from commit `54bf44d`; verify the build log clones that SHA rather than `fceeda8`.
+3. Before public use with sensitive customer data, add authentication and decide on private persistent storage for CSVs/model outputs. Keep Streamlit as fallback until production is verified.
 
 ## Manual steps for the user
-The 42-test suite has passed. Launch with `python -m streamlit run app.py`; confirm data files stay local/private and keep `data/` and `models/` out of version control.
+The 46-test suite has passed; frontend `npm ci` and `npm run build` have passed locally. Render/Vercel production deployment remains unverified. For local setup, follow `README.md`; Streamlit fallback starts with `python -m streamlit run app.py`.

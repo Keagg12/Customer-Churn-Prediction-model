@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: churn-intelligence-api
+    runtime: python
+    plan: free
+    region: virginia
+    rootDir: .
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.14.3
+      - key: CHURN_DATA_DIR
+        value: ./data
+      - key: CHURN_CONFIG_DIR
+        value: ./config
+      - key: CHURN_MODEL_PATH
+        value: ./models/model.joblib
+      - key: CHURN_AUTO_TRAIN
+        value: "true"
+      - key: CORS_ORIGINS
+        sync: false

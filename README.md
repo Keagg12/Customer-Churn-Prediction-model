@@ -55,7 +55,7 @@ FastAPI health and interactive API documentation are at `/api/health` and `/docs
 
 ## Data and Model
 
-Default runtime files are `data/train.csv` (labeled training/evaluation/history), `data/test.csv` (unlabeled scoring only), optional `data/data_descriptions.csv`, `config/dataset.json`, and `config/rules.json`. `data/` and `models/` are excluded from Git. Without a usable model package the backend can train on `train.csv`; a package is saved as `models/model.joblib`. Use private storage for real customer data and model artifacts.
+Default runtime files are `data/train.csv` (labeled training/evaluation/history), `data/test.csv` (unlabeled scoring only), optional `data/data_descriptions.csv`, `config/dataset.json`, and `config/rules.json`. The current pushed Git commit includes `data/` and `models/`, so Render can read them when deploying this repository. For sensitive customer data, move them to authorized private/persistent storage and configure the `CHURN_*_DIR` variables instead. Without a usable model package the backend trains on `train.csv` and saves to `models/model.joblib`.
 
 `config/dataset.json` defines the target, positive target values, ID, and excluded columns. `config/rules.json` defines six heuristic actions. Actions are not trained or proven to reduce churn. Risk bands default to Low below 15%, Medium from 15% to below 30%, High from 30% upward; these are operational defaults, not established optimal cut-offs. Class balancing is off by default.
 
@@ -67,7 +67,7 @@ Deploy the static React frontend to Vercel and the Python API separately to a Py
 
 Do not commit `frontend/node_modules/` or `frontend/dist/`. Vercel must install dependencies on its Linux build image from `frontend/package-lock.json`; committing Windows `node_modules` can preserve non-executable file modes and cause `vite: Permission denied`. The package manifest explicitly allows esbuild's required install script under npm 11.
 
-For Render, use the repository root as the service root, build command `pip install -r backend/requirements.txt`, and start command `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`. Set `CORS_ORIGINS` to the exact Vercel origin(s), comma-separated. Configure `CHURN_DATA_DIR`, `CHURN_CONFIG_DIR`, and `CHURN_MODEL_PATH` for private mounted storage. A local `models/` file is not deployed because it is Git-ignored; without persisted model storage, redeploys may retrain. `CHURN_AUTO_TRAIN=true` trains during backend startup if no valid model is found, which can make cold starts slow.
+For Render, choose **New → Blueprint**, connect this repository and branch `main`, and apply the checked-in `render.yaml`. It creates a free Python web service from the repository root with health check `/api/health`, build command `pip install -r backend/requirements.txt`, and start command `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`. After creation, open the service's Environment settings and set `CORS_ORIGINS` to the exact Vercel origin (for example `https://your-project.vercel.app`). The Blueprint uses `./data`, `./config`, and `./models/model.joblib` from the repository by default; change `CHURN_DATA_DIR`, `CHURN_CONFIG_DIR`, and `CHURN_MODEL_PATH` when using private mounted storage. The default filesystem is ephemeral, so persist newly trained models externally or expect them to be lost on redeploy/restart. `CHURN_AUTO_TRAIN=true` trains at startup if no valid model is available and can cause cold starts.
 
 Do not commit real customer CSVs, model artifacts, credentials, or `.env` files. The API currently has no user authentication or authorization; do not expose it publicly with sensitive data until protected by an authentication/access-control layer. Browser environment variables prefixed `VITE_` are public and must contain no secrets.
 
@@ -75,11 +75,11 @@ Do not commit real customer CSVs, model artifacts, credentials, or `.env` files.
 
 ```text
 frontend/      React pages/components, Vite, Tailwind, Vercel SPA config
-backend/       FastAPI endpoints, request schemas, request/session orchestration
+backend/       FastAPI endpoints, Render Blueprint, request/session orchestration
 churn/         Existing Python business and machine-learning logic
 ui/ app.py     Original Streamlit application, retained as fallback
 config/        Dataset mapping and retention rules
-data/ models/  Local/private input files and generated model packages (Git-ignored)
+data/ models/  Current committed CSV inputs and generated model packages; protect or move if sensitive
 tests/         Backend unit tests and FastAPI contract tests
 ```
 
