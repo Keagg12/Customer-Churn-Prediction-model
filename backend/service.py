@@ -31,7 +31,9 @@ PAGES = [
     "Retention Center",
     "Prediction Workspace",
 ]
-MAX_UPLOAD_BYTES = 500 * 1024 * 1024
+MAX_UPLOAD_MB = int(os.getenv("CHURN_MAX_UPLOAD_MB", "500"))
+MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024
+ALLOW_PERSIST = os.getenv("CHURN_ALLOW_PERSIST", "true").strip().lower() in {"1", "true", "yes", "on"}
 
 
 class ApiError(Exception):
@@ -725,7 +727,8 @@ class DashboardService:
             )
         except ValueError as exc:
             raise ApiError(422, f"Cannot train: {exc}") from exc
-        if request.persist:
+        persist = request.persist and ALLOW_PERSIST
+        if persist:
             try:
                 W.save_package(self.model_path, pkg)
             except OSError as exc:

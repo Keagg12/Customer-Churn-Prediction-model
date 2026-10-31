@@ -1,18 +1,3 @@
-# __pycache__/
-# *.pyc
-# .venv/
-# backend/.venv/
-# frontend/node_modules/
-# frontend/dist/
-# .vercel/
-# .env
-# backend/.env
-# frontend/.env
-# *.log
-data/
-models/
-# *.joblib
-
 __pycache__/
 *.pyc
 .venv/
@@ -21,6 +6,14 @@ frontend/node_modules/
 frontend/dist/
 .vercel/
 .env
+.env.*
+!.env.example
 backend/.env
 frontend/.env
+frontend/.env.local
 *.log
+
+# not part of the app
+.kilo/
+Compiler_Design_PBL_Report.docx
+files.zip

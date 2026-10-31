@@ -17,8 +17,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from churn import data as D
 
 from .schemas import RiskBandsRequest, TrainRequest
-from .service import ApiError, DashboardService, MAX_UPLOAD_BYTES
-
+from .service import ApiError, DashboardService, MAX_UPLOAD_BYTES, MAX_UPLOAD_MB
 
 ALLOWED_UPLOADS = {".csv", ".tsv", ".txt", ".xlsx", ".xlsm", ".xls"}
 SESSION_RE = re.compile(r"^[A-Za-z0-9._:-]{1,160}$")
@@ -74,7 +73,7 @@ def create_app(service: Optional[DashboardService] = None) -> FastAPI:
             raise ApiError(415, "Supported uploads: CSV, TSV, TXT, XLSX, XLSM, XLS.")
         contents = await file.read(MAX_UPLOAD_BYTES + 1)
         if len(contents) > MAX_UPLOAD_BYTES:
-            raise ApiError(413, "Upload exceeds the 500 MB limit.")
+            raise ApiError(413, f"Upload exceeds the {MAX_UPLOAD_MB} MB limit.")
         try:
             frame = D.load_table(BytesIO(contents), filename=filename)
         except D.DataLoadError as exc:

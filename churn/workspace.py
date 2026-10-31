@@ -141,7 +141,7 @@ def is_stale(pkg: ModelPackage, train_path) -> bool:
     if not p.exists() or src.get("name") != p.name:
         return False
     fp = file_fingerprint(p)
-    return (fp["size"], fp["mtime_ns"]) != (src.get("size"), src.get("mtime_ns"))
+    return fp["size"] != src.get("size")
 
 
 # ----------------------------------------------------------------------------- scoring helpers

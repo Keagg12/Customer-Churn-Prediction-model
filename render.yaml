@@ -3,7 +3,7 @@ services:
     name: churn-intelligence-api
     runtime: python
     plan: free
-    region: virginia
+    region: singapore
     rootDir: .
     buildCommand: pip install -r backend/requirements.txt
     startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
@@ -19,5 +19,9 @@ services:
         value: ./models/model.joblib
       - key: CHURN_AUTO_TRAIN
         value: "false"
+      - key: CHURN_ALLOW_PERSIST
+        value: "false"
+      - key: CHURN_MAX_UPLOAD_MB
+        value: "25"
       - key: CORS_ORIGINS
         sync: false
