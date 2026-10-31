@@ -51,6 +51,10 @@ class ApiTests(unittest.TestCase):
         cls.client_context.__exit__(None, None, None)
         cls.temp.cleanup()
 
+    def test_auto_training_is_disabled_by_default(self):
+        service = DashboardService(self.root, auto_train=None)
+        self.assertFalse(service.auto_train)
+
     def test_dashboard_routes_return_real_fixture_data(self):
         headers = {"X-Session-ID": "api-test-session"}
         for path in ("/api/health", "/api/bootstrap", "/api/overview", "/api/customers?limit=5",

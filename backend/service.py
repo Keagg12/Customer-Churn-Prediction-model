@@ -133,7 +133,7 @@ class DashboardService:
         self.model_path = Path(os.getenv("CHURN_MODEL_PATH", self.root / "models" / "model.joblib"))
         self.train_path = self.data_dir / "train.csv"
         self.test_path = self.data_dir / "test.csv"
-        auto_value = os.getenv("CHURN_AUTO_TRAIN", "true").strip().lower() in {"1", "true", "yes", "on"}
+        auto_value = os.getenv("CHURN_AUTO_TRAIN", "false").strip().lower() in {"1", "true", "yes", "on"}
         self.auto_train = auto_value if auto_train is None else auto_train
         self.config: dict = {}
         self.descriptions: dict[str, str] = {}
