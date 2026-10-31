@@ -1,67 +1,84 @@
-# Churn Intelligence
-
-Explainable customer churn prediction with rule-based retention recommendations.
-Workflow: **Predict, Explain, Recommend, Retain.**
-
-Stack: Python, pandas, scikit-learn, SHAP, Streamlit.
-
-## Run
-
-```bash
-pip install -r requirements.txt
-python -m unittest discover tests
-streamlit run app.py
-```
-
-Put the dataset in `data/`:
-
-| File | Purpose |
-|---|---|
-| `data/train.csv` | Labeled customers (has the `Churn` column). Used for training, held-out evaluation and observed churn patterns. |
-| `data/test.csv` | Customers to score. No label is needed and none is used. |
-| `data/data_descriptions.csv` | Column dictionary (optional). |
-
-On first launch the app trains and compares four models on `train.csv` and saves the result to
-`models/model.joblib`. Later launches load it. Retraining only happens when you press the button in the
-Prediction Workspace (or when the saved model cannot be used on this machine).
-
-## Pages
-
-| Page | What it shows |
-|---|---|
-| Overview | Observed churn (labeled history) beside predicted risk (model estimate), where churn concentrates, who needs attention first. |
-| Customer Explorer | Search, filter, sort and select customers. |
-| Customer Intelligence | One customer: score, attributes, the model's explanation, and the business rules that apply (kept separate). |
-| Model Insights | Held-out metrics, ROC curves, confusion matrix, calibration, risk-band check, feature importance, limitations. |
-| Retention Center | Priority queue with main risk factors and applicable rules. |
-| Prediction Workspace | Optional uploads, validation, retraining, scoring new customers, risk bands. |
-
-## Configuration
-
-- `config/dataset.json`: churn column, the value that means churned, ID column, excluded columns.
-- `config/rules.json`: retention rules. Triggers use real columns and data-derived thresholds. The actions are
-  business judgement; their effect on churn has not been tested.
-- Risk bands default to Low below 15%, Medium 15% to below 30%, High 30% and above. Adjustable in the Workspace.
-- Class balancing is off by default because it inflates predicted probabilities.
-
-## Layout
-
-```text
-app.py                 entry point and navigation
-ui/                    Streamlit pages, theme and session handling
-churn/                 data loading, training, scoring, explanations, rules (no Streamlit)
-config/                dataset.json, rules.json
 tests/                 test_core.py, test_workspace.py
 data/  models/         local files (not committed)
+# Churn Intelligence
+
+Explainable customer churn prediction with deterministic, rule-based retention suggestions. Workflow: **Predict, Explain, Recommend, Retain.**
+
+The current web application uses React 19, Vite, Tailwind CSS, React Router, Recharts, Lucide React, FastAPI, pandas, and scikit-learn. The original Streamlit app remains in the repository as a fallback; the React UI is under `frontend/` and its API under `backend/`.
+
+## Features
+
+| React page | Streamlit equivalent | Functionality |
+|---|---|---|
+| Overview | Overview | Observed labeled churn and predicted risk side by side, risk distribution, historical group rates, highest-risk customers. |
+| Customer Explorer | Customer Explorer | Search by ID, filter risk/probability/segment, sort, choose 100/250/500 rows, view model-relevant attributes/actions, export CSV, open profile. |
+| Customer Intelligence | Customer Intelligence | Exact ID lookup or top-100 picker, score, customer attributes, per-customer model contributions, separately matched rule suggestions. |
+| Model Insights | Model Insights | Cross-validation/held-out candidate metrics, ROC curves, confusion matrix, calibration, risk-band outcomes, ranking check, global feature reliance, limitations. |
+| Retention Center | Retention Center | Risk/segment/rule filters, priority queue, main risk factors, matching suggestions, expected churn sum, CSV export. |
+| Prediction Workspace | Prediction Workspace | Status, schema mapping for uploaded training data, model training and persistence choice, upload scoring and full CSV export, session risk-band controls, reset. |
+
+The Python calculations remain in `churn/`. The FastAPI adapter does not reimplement training, scoring, explanations, target normalization, or rule matching in JavaScript.
+
+## Local Development
+
+Use two terminals from the repository root. PowerShell setup for the backend:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r backend/requirements.txt
+Copy-Item backend/.env.example backend/.env
+python -m uvicorn backend.main:app --reload --env-file backend/.env --host 127.0.0.1 --port 8000
 ```
 
-## What the results do and do not mean
+In a second terminal:
 
-- Metrics are computed only on a labeled held-out split of `train.csv`. Unlabeled customers are scored, never evaluated.
-- Explanations show what the model relies on. They are not proven causes of churn.
-- The data is a single snapshot per customer. It has no dates, so usage trends cannot be measured.
-- `SupportTicketsPerMonth` is a proxy for service friction, not a record of complaints.
-- `TotalCharges` equals `AccountAge` times `MonthlyCharges`, so it is excluded.
+```powershell
+cd frontend
+Copy-Item .env.example .env
+npm ci
+npm run dev
+```
 
-Command line helpers (inspect a file, train and save a bundle): `python -m churn.cli --help`.
-A bundle saved by the command line tool has no evaluation, so the app trains its own instead of using it.
+Open `http://localhost:5173`. Vite proxies `/api` to `http://127.0.0.1:8000` when the frontend environment file is absent or leaves `VITE_API_BASE_URL` empty. To override, set `VITE_API_BASE_URL=http://localhost:8000` in `frontend/.env`.
+
+Run checks from the repository root:
+
+```powershell
+python -m unittest discover tests
+npm --prefix frontend ci
+npm --prefix frontend run build
+```
+
+FastAPI health and interactive API documentation are at `/api/health` and `/docs` on port 8000.
+
+## Data and Model
+
+Default runtime files are `data/train.csv` (labeled training/evaluation/history), `data/test.csv` (unlabeled scoring only), optional `data/data_descriptions.csv`, `config/dataset.json`, and `config/rules.json`. `data/` and `models/` are excluded from Git. Without a usable model package the backend can train on `train.csv`; a package is saved as `models/model.joblib`. Use private storage for real customer data and model artifacts.
+
+`config/dataset.json` defines the target, positive target values, ID, and excluded columns. `config/rules.json` defines six heuristic actions. Actions are not trained or proven to reduce churn. Risk bands default to Low below 15%, Medium from 15% to below 30%, High from 30% upward; these are operational defaults, not established optimal cut-offs. Class balancing is off by default.
+
+Only labeled held-out training rows are used for reported model metrics. `data/test.csv` has no target and is never used to evaluate quality. Explanations describe what the model relies on, not causal reasons for churn. The data is one snapshot per customer, with no dates for a temporal evaluation. See [TECHNICAL_AUDIT.md](TECHNICAL_AUDIT.md) for measured dataset results, model metrics, architecture diagrams, and file classifications.
+
+## Deployment
+
+Deploy the static React frontend to Vercel and the Python API separately to a Python web-service host such as Render. Vercel project settings: set **Root Directory** to `frontend`, build command to `npm run build`, output directory to `dist`, and configure `VITE_API_BASE_URL` to the public API origin. `frontend/vercel.json` provides history fallback for React Router.
+
+For Render, use the repository root as the service root, build command `pip install -r backend/requirements.txt`, and start command `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`. Set `CORS_ORIGINS` to the exact Vercel origin(s), comma-separated. Configure `CHURN_DATA_DIR`, `CHURN_CONFIG_DIR`, and `CHURN_MODEL_PATH` for private mounted storage. A local `models/` file is not deployed because it is Git-ignored; without persisted model storage, redeploys may retrain. `CHURN_AUTO_TRAIN=true` trains during backend startup if no valid model is found, which can make cold starts slow.
+
+Do not commit real customer CSVs, model artifacts, credentials, or `.env` files. The API currently has no user authentication or authorization; do not expose it publicly with sensitive data until protected by an authentication/access-control layer. Browser environment variables prefixed `VITE_` are public and must contain no secrets.
+
+## Repository Layout
+
+```text
+frontend/      React pages/components, Vite, Tailwind, Vercel SPA config
+backend/       FastAPI endpoints, request schemas, request/session orchestration
+churn/         Existing Python business and machine-learning logic
+ui/ app.py     Original Streamlit application, retained as fallback
+config/        Dataset mapping and retention rules
+data/ models/  Local/private input files and generated model packages (Git-ignored)
+tests/         Backend unit tests and FastAPI contract tests
+```
+
+The standalone CLI remains available with `python -m churn.cli --help`. Its saved bundle does not contain held-out evaluation, so the dashboard API does not accept that artifact as a complete evaluation package.

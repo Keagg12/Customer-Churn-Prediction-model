@@ -1,7 +1,7 @@
 """Churn Intelligence: Predict, Explain, Recommend, Retain.
 Run from the project root:  streamlit run app.py
 
-The app opens on the Overview using the files in data/ and models/. Uploading is optional (Prediction Workspace)."""
+The app opens on the Overview using the files in data/ and models."""
 import sys
 from pathlib import Path
 
@@ -13,8 +13,7 @@ import streamlit as st  # noqa: E402
 
 st.set_page_config(page_title="Churn Intelligence", layout="wide", initial_sidebar_state="expanded")
 
-from ui import (page_explorer, page_intelligence, page_model, page_overview, page_retention,  # noqa: E402
-                page_workspace, theme)
+from ui import page_explorer, page_intelligence, page_overview, page_retention, theme  # noqa: E402
 from ui.common import source_line  # noqa: E402
 from ui.state import PAGES, S, build_ctx  # noqa: E402
 
@@ -22,9 +21,7 @@ ROUTES = {
     "Overview": page_overview.render,
     "Customer Explorer": page_explorer.render,
     "Customer Intelligence": page_intelligence.render,
-    "Model Insights": page_model.render,
     "Retention Center": page_retention.render,
-    "Prediction Workspace": page_workspace.render,
 }
 
 theme.inject(st)

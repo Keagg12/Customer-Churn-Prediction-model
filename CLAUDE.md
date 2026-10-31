@@ -32,16 +32,15 @@ No college, department, mentor, team, roll-number or academic branding anywhere.
 - **Tested:** the user pasted real output (or Claude ran it in its own sandbox and says so) showing it works.
 Never say the application "works" without evidence. Say what was run, where, and the observed result. Claude's sandbox results are not the user's VS Code results.
 
-## Dataset checks (dataset not yet received; expected 30 Oct 2026)
-Never assume its format, columns, labels or results. Do no dataset-dependent work before inspecting the real files. Then answer, in plain language:
+## Dataset checks (local files inspected 31 Oct 2026)
+The current local data files were inspected and measured; detailed results are in `TECHNICAL_AUDIT.md`. Re-run these checks whenever the dataset changes. Never assume a future dataset's format, columns, labels or results. Answer, in plain language:
 1. Can it be read and understood?
 2. Is there a usable churn label, or enough to define one?
 3. Are data quality and class balance reasonable?
 4. Can we train and properly evaluate a churn model (no leakage, sensible split)?
 5. Can we explain predictions (understandable features for SHAP)?
 6. Can we make useful retention recommendations from the available features?
-Verdict: **proceed** (go straight to implementation), **minor adjustments** (state the issue and the simplest fix), or **reconsider part of the project** (explain evidence and options; scope changes need user approval).
-Report only results from real runs. The 30%/70% risk thresholds are provisional until checked against real score distributions. SHAP shows what the model relies on, not proven causes.
+Current verdict: **proceed**, with limitations documented in `TECHNICAL_AUDIT.md`: one random holdout is possible but no time-based evaluation, dataset provenance is unknown, and retention actions are unvalidated. Re-evaluate the verdict if the files, label, or scope change. **Risk bands default to Low <15%, Medium 15% to <30%, High >=30%; these are operational defaults, not proven optimal thresholds.** Report only results from real runs. SHAP shows what the model relies on, not proven causes.
 
 ## Checkpoint (when asked, or before stopping)
 Update `HANDOFF.md` fully (it must stand alone), then tell the user which files to carry over to the next account: this file, `HANDOFF.md`, and every code file listed in the manifest.

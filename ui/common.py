@@ -3,7 +3,7 @@ import pandas as pd
 import streamlit as st
 
 from . import theme
-from .state import DATA_DIR, MODEL_PATH, RULES_PATH, TEST_CSV, TRAIN_CSV, Ctx, go
+from .state import DATA_DIR, MODEL_PATH, RULES_PATH, TEST_CSV, TRAIN_CSV, Ctx
 
 RULES_NOTE = ("Recommended actions come from the business rules in config/rules.json. The triggers use thresholds "
               "taken from the data; the actions themselves are judgement, and their effect on churn has not been tested.")
@@ -34,9 +34,7 @@ def setup_state(ctx: Ctx, title: str = "Setup needed") -> None:
         theme.md(st, theme.callout(e, "err"))
     for n in ctx.notes:
         theme.md(st, theme.callout(n, "warn"))
-    theme.md(st, theme.callout(f"Put train.csv, test.csv and data_descriptions.csv in {DATA_DIR.name}/ next to app.py and reload, "
-                               "or load files yourself in the Prediction Workspace."))
-    st.button("Open Prediction Workspace", type="primary", on_click=go, args=("Prediction Workspace",), key="setup_open_ws")
+    theme.md(st, theme.callout(f"Put train.csv, test.csv and data_descriptions.csv in {DATA_DIR.name}/ next to app.py, then reload."))
 
 
 def require_ready(ctx: Ctx) -> bool:

@@ -25,8 +25,7 @@ MODEL_PATH = ROOT / "models" / "model.joblib"
 TRAIN_CSV, TEST_CSV = DATA_DIR / "train.csv", DATA_DIR / "test.csv"
 RULES_PATH, DATASET_CFG, DESCRIPTIONS = CONFIG_DIR / "rules.json", CONFIG_DIR / "dataset.json", DATA_DIR / "data_descriptions.csv"
 
-PAGES = ["Overview", "Customer Explorer", "Customer Intelligence", "Model Insights", "Retention Center",
-         "Prediction Workspace"]
+PAGES = ["Overview", "Customer Explorer", "Customer Intelligence", "Retention Center"]
 S = st.session_state
 
 
@@ -237,7 +236,7 @@ def build_ctx() -> Ctx:
             ctx.schema = W.schema_from_config(df, cfg)
             if ctx.schema is None:
                 ctx.errors.append("config/dataset.json does not match the columns of data/train.csv "
-                                  "(target, positive_labels). Fix the file or train from the Prediction Workspace.")
+                                  "(target, positive_labels). Fix the file and reload the app.")
     if ctx.labeled is not None and ctx.schema is not None:
         ctx.patterns, ctx.strength = _patterns(ctx.labeled_key, ctx.labeled, ctx.schema)
         from churn.schema import make_target

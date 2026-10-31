@@ -57,8 +57,7 @@ def render(ctx: Ctx) -> None:
             theme.md(st, theme.callout("data/test.csv was not found, so the training rows are being scored. Those scores are "
                                        "in-sample and look better than they would on new customers.", "warn"))
         if ctx.stale:
-            theme.md(st, theme.callout("data/train.csv has changed since the model was trained. Retrain in the Prediction Workspace "
-                                       "to include the change.", "warn"))
+            theme.md(st, theme.callout("data/train.csv has changed since the model was trained. The saved model does not include this change.", "warn"))
     for e in ctx.errors:
         theme.md(st, theme.callout(e, "err"))
     for n in ctx.notes:
@@ -74,7 +73,7 @@ def render(ctx: Ctx) -> None:
                                    "Observed churn rate among labeled historical customers, by group. The dashed line is the overall rate."))
         feat = _chart_controls(ctx)
         if feat is None or ctx.patterns is None or ctx.base_rate is None:
-            theme.md(st, theme.callout("Patterns need labeled historical data. Load it in the Prediction Workspace."))
+            theme.md(st, theme.callout("Patterns need labeled historical data. Add data/train.csv and reload the app."))
         else:
             g = ctx.patterns[ctx.patterns["feature"] == feat].copy()
             big = g["customers"] >= 0.02 * g["customers"].sum()
