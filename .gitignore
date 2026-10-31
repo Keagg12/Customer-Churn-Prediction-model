@@ -9,8 +9,8 @@
 # backend/.env
 # frontend/.env
 # *.log
-# data/
-# models/
+data/
+models/
 # *.joblib
 
 __pycache__/
