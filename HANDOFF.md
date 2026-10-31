@@ -12,7 +12,7 @@ Standalone Explainable AI-Based Customer Churn Prediction and Personalized Marke
 - Vercel failure was caused by tracked Windows-generated `frontend/node_modules`/`dist` files; Git recorded Vite/esbuild executables as mode `100644`. Those directories are now staged for removal from Git; local copies remain. `.gitignore` only re-enables `frontend/node_modules/` and `frontend/dist/`; other user-commented ignore patterns remain commented.
 - `frontend/package.json` explicitly allows esbuild's install script for npm 11. `npm --prefix frontend ci` and `npm --prefix frontend run build` pass locally after the fix. The Vercel redeploy is not yet verified; commit/push the staged cleanup and redeploy.
 - FastAPI is not hosted on Vercel. Deploy it separately and set Vercel `VITE_API_BASE_URL`; configure backend `CORS_ORIGINS`. The API currently has no authentication and uses in-memory browser sessions, so protect it and provide private/persistent data/model storage before production use.
-- `render.yaml` defines a free Render web service from the repository root, pinned Python requirements, `/api/health`, repository-relative CSV/config/model paths, and an unsynced `CORS_ORIGINS` value. Render is at its sign-in page in the shared browser; no Render service has been created.
+- `render.yaml` defines a free Render web service from the repository root, pinned Python requirements, `/api/health`, repository-relative CSV/config/model paths, `CHURN_AUTO_TRAIN=false`, and an unsynced `CORS_ORIGINS` value. The existing Render service is currently failing during startup with OOM at its 512 MiB limit.
 - Pushed `main` is `54bf44d`. `data/*.csv` and `models/*.joblib` are tracked in that commit, so Render can read them; their visibility depends on GitHub repository visibility. Do not remove or re-ignore them without user approval; use private storage if sensitive.
 
 ## Architecture
@@ -114,12 +114,12 @@ Status words: Generated = written by Claude, not yet applied by the user. Tested
 - Recommendation actions are heuristics; the UI says so on every page that shows them.
 - Vercel build fix is in pushed commit `54bf44d`; failure logs supplied so far target older commit `fceeda8`, so confirm deployments use the new SHA.
 - FastAPI is unauthenticated and keeps upload/session overrides in process memory; use access control and private persistent storage before exposing real customer data.
-- Render service is not created yet; Render dashboard is at sign-in. `render.yaml` is ready to apply as a Blueprint, with `CORS_ORIGINS` to be set to the Vercel site origin.
+- Render logs show the existing service still builds from root `requirements.txt` (pandas 2.2.3 / NumPy 1.26.4) rather than `backend/requirements.txt` (pandas 3.0.3 / NumPy 2.4.6 / sklearn 1.9.0 matching the model). It then OOMs during lifespan startup. Set the existing Render service build command to `pip install -r backend/requirements.txt` and `CHURN_AUTO_TRAIN=false`, redeploy, then inspect `/api/health`.
 
 ## Next action
-1. Sign in to Render, select **New -> Blueprint**, connect `Keagg12/Customer-Churn-Prediction-model` branch `main`, review `render.yaml`, enter `CORS_ORIGINS=https://<your-vercel-site>.vercel.app`, apply, and wait for `/api/health` to pass.
-2. Set Vercel `VITE_API_BASE_URL` to the Render service origin, then redeploy Vercel from commit `54bf44d`; verify the build log clones that SHA rather than `fceeda8`.
-3. Before public use with sensitive customer data, add authentication and decide on private persistent storage for CSVs/model outputs. Keep Streamlit as fallback until production is verified.
+1. In the existing Render service settings, set Build Command to `pip install -r backend/requirements.txt`; set `CHURN_AUTO_TRAIN=false` and the exact `CORS_ORIGINS` Vercel origin. The changed Blueprint also contains these settings, but the service must sync it or be edited directly.
+2. Deploy and wait for `/api/health` to return `model_loaded: true`; if it reports false, inspect saved-model load notes and dependency versions before enabling training.
+3. Configure Vercel `VITE_API_BASE_URL` with the Render origin and redeploy. Before public use with sensitive customer data, add API authentication and persistent private storage. Keep Streamlit as fallback until production is verified.
 
 ## Manual steps for the user
 The 46-test suite has passed; frontend `npm ci` and `npm run build` have passed locally. Render/Vercel production deployment remains unverified. For local setup, follow `README.md`; Streamlit fallback starts with `python -m streamlit run app.py`.

@@ -18,6 +18,6 @@ services:
       - key: CHURN_MODEL_PATH
         value: ./models/model.joblib
       - key: CHURN_AUTO_TRAIN
-        value: "true"
+        value: "false"
       - key: CORS_ORIGINS
         sync: false
