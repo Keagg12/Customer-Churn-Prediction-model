@@ -86,7 +86,7 @@ def create_app(service: Optional[DashboardService] = None) -> FastAPI:
         return {
             "status": "ok",
             "model_loaded": dashboard.pkg is not None,
-            "training_data_loaded": dashboard.train is not None,
+            "training_data_loaded": dashboard.train_df is not None,
             "errors": dashboard.startup_errors,
         }
 

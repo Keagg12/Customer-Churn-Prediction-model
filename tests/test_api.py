@@ -57,6 +57,9 @@ class ApiTests(unittest.TestCase):
 
     def test_dashboard_routes_return_real_fixture_data(self):
         headers = {"X-Session-ID": "api-test-session"}
+        health = self.client.get("/api/health", headers=headers)
+        self.assertEqual(health.status_code, 200)
+        self.assertTrue(health.json()["training_data_loaded"])
         for path in ("/api/health", "/api/bootstrap", "/api/overview", "/api/customers?limit=5",
                      "/api/retention?risk_levels=High&limit=5", "/api/model-insights", "/api/workspace/status"):
             with self.subTest(path=path):
